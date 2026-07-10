@@ -274,6 +274,18 @@ public:
         return GetValue("config", key);
     }
 
+    int GetIntConfig(const std::string& key) {
+        std::string value = GetValue("config", key);
+        if (value.empty()) return 0;
+        try {
+            return std::stoi(value);
+        }
+        catch (const std::exception&) {
+            Logger::Warning("Failed to convert config to int: " + key + " = " + value);
+            return 0;
+        }
+    }
+
     bool GetBoolConfig(const std::string& key)
     {
         std::string value = GetValue("config", key);

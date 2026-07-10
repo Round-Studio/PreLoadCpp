@@ -136,7 +136,7 @@ void InitializeBaseDir()
 	GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
 	fs::path exePath = modulePath;
 	
-	if (g_configManager.GetStringConfig("folderPolicyString") == "shares")
+	if (g_configManager.GetIntConfig("folderPolicy") == 2)
 	{
 		int versionType = g_configManager.GetInfoInt("versionType");
 		if (versionType == 0 || versionType == 2)
@@ -149,7 +149,7 @@ void InitializeBaseDir()
 		}
 	}
 	
-	if (g_configManager.GetStringConfig("folderPolicyString") == "independence")
+	if (g_configManager.GetIntConfig("folderPolicy") == 1)
 	{
 		g_logicalBaseDir = exePath.parent_path() / bbFolder;
 	}
