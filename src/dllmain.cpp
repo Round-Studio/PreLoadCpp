@@ -698,6 +698,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
 			Logger::Success("BedrockBoot is free software licensed under GPLv3");
 			Logger::Success("Submit issues and submit PR: https://github.com/Round-Studio/BedrockBoot");
+			Logger::Success("Submit issues and submit PR: https://github.com/Round-Studio/PreLoadCpp");
 		}
 		if (g_configManager.GetBoolConfig("isVersionIsolated"))
 		{
