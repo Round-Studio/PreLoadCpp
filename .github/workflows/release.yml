@@ -1,0 +1,67 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Generate version from date
+        id: version
+        shell: pwsh
+        run: |
+          $d = (Get-Date).ToUniversalTime()
+          $v = "$($d.Year % 100).$($d.Month).$($d.Day)"
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate version_config.h
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $sha = "${{ github.sha }}"
+          $parts = $v.Split('.')
+          @"
+          #pragma once
+
+          #define PRELOADCPP_VERSION_MAJOR $($parts[0])
+          #define PRELOADCPP_VERSION_MINOR $($parts[1])
+          #define PRELOADCPP_VERSION_PATCH $($parts[2])
+          #define PRELOADCPP_VERSION_BUILD 0
+          #define PRELOADCPP_VERSION "$v"
+          #define PRELOADCPP_COMMIT_HASH "$sha"
+          "@ | Out-File -FilePath src/version_config.h -Encoding ASCII
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release x64)
+        shell: pwsh
+        run: msbuild src/PreloadCpp.vcxproj /p:Configuration=Release /p:Platform=x64
+
+      - name: Compute SHA256 and locate DLL
+        id: artifacts
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Recurse -Filter "PreloadCpp.dll" | Select-Object -First 1
+          if (-not $dll) { throw "PreloadCpp.dll not found" }
+          $hash = (Get-FileHash $dll.FullName -Algorithm SHA256).Hash.ToLower()
+          echo "hash=$hash" >> $env:GITHUB_OUTPUT
+          echo "dll_path=$($dll.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Create Release and Upload Asset
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $h = "${{ steps.artifacts.outputs.hash }}"
+          $body = '{"file":"PreloadCpp.dll","hash":"' + $h + '","version":"' + $v + '"}'
+          gh release create "v$v" "${{ steps.artifacts.outputs.dll_path }}" `
+            --title "v$v" `
+            --notes "$body" `
+            --target "${{ github.sha }}"

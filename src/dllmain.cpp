@@ -10,6 +10,7 @@
 #include "redirctor.h"
 #include "logger.h"
 #include "ConfigManager.h"
+#include "version.h"
 #pragma comment(lib, "detours.lib")
 fs::path g_logicalBaseDir;
 HANDLE g_localDataHandle = INVALID_HANDLE_VALUE;
@@ -695,6 +696,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 			freopen_s(&fDummy, "CONIN$", "r", stdin);
 			Logger::Initialize();
 			PrintBanner();
+			PrintVersionInfo();
 
 			Logger::Success("BedrockBoot is free software licensed under GPLv3");
 			Logger::Success("Submit issues and submit PR: https://github.com/Round-Studio/BedrockBoot");
