@@ -32,102 +32,102 @@ NtCreateSection_t OriginalNtCreateSection = nullptr;
 
 std::wstring GetRedirectedRelativePath(const std::wstring& originalPath)
 {
-    const std::vector<std::wstring> keywords = {
-    	L"AppData\\Roaming\\Minecraft Bedrock",
+	const std::vector<std::wstring> keywords = {
+		L"AppData\\Roaming\\Minecraft Bedrock",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState",
-    	L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe\\LocalState",
-        L"AppData\\Roaming\\Minecraft Bedrock Preview"
-    };
+		L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe\\LocalState",
+		L"AppData\\Roaming\\Minecraft Bedrock Preview"
+	};
 
-    const std::vector<std::wstring> excludedPatterns = {
-        L"AC",
-        L"LocalCache",
-        L"SystemAppData",
-        L"Settings",
-        L"TempState",
-        L"RoamingState"
-    };
+	const std::vector<std::wstring> excludedPatterns = {
+		L"AC",
+		L"LocalCache",
+		L"SystemAppData",
+		L"Settings",
+		L"TempState",
+		L"RoamingState"
+	};
 
-    std::wstring matchedKeyword;
-    size_t pos = std::wstring::npos;
+	std::wstring matchedKeyword;
+	size_t pos = std::wstring::npos;
 
-    for (const auto& keyword : keywords)
-    {
-        size_t foundPos = originalPath.find(keyword);
-        if (foundPos != std::wstring::npos)
-        {
-            pos = foundPos;
-            matchedKeyword = keyword;
-            break;
-        }
-    }
+	for (const auto& keyword : keywords)
+	{
+		size_t foundPos = originalPath.find(keyword);
+		if (foundPos != std::wstring::npos)
+		{
+			pos = foundPos;
+			matchedKeyword = keyword;
+			break;
+		}
+	}
 
-    if (pos == std::wstring::npos)
-    {
-        return L"";
-    }
+	if (pos == std::wstring::npos)
+	{
+		return L"";
+	}
 
-    std::wstring relativePart = originalPath.substr(pos + matchedKeyword.length());
+	std::wstring relativePart = originalPath.substr(pos + matchedKeyword.length());
 
-    while (!relativePart.empty() &&
-        (relativePart[0] == L'\\' || relativePart[0] == L'/'))
-    {
-        relativePart.erase(0, 1);
-    }
+	while (!relativePart.empty() &&
+		(relativePart[0] == L'\\' || relativePart[0] == L'/'))
+	{
+		relativePart.erase(0, 1);
+	}
 
-    if (relativePart.empty())
-    {
-        return L"";
-    }
+	if (relativePart.empty())
+	{
+		return L"";
+	}
 
-    for (wchar_t& c : relativePart)
-    {
-        if (c == L'/') c = L'\\';
-    }
+	for (wchar_t& c : relativePart)
+	{
+		if (c == L'/') c = L'\\';
+	}
 
-    size_t firstSlashPos = relativePart.find(L'\\');
-    std::wstring topLevelFolder;
+	size_t firstSlashPos = relativePart.find(L'\\');
+	std::wstring topLevelFolder;
 
-    if (firstSlashPos != std::wstring::npos)
-    {
-        topLevelFolder = relativePart.substr(0, firstSlashPos);
-    }
-    else
-    {
-        topLevelFolder = relativePart;
-    }
+	if (firstSlashPos != std::wstring::npos)
+	{
+		topLevelFolder = relativePart.substr(0, firstSlashPos);
+	}
+	else
+	{
+		topLevelFolder = relativePart;
+	}
 
-    std::wstring lowerTopLevel = topLevelFolder;
-    std::transform(lowerTopLevel.begin(), lowerTopLevel.end(), lowerTopLevel.begin(), ::towlower);
+	std::wstring lowerTopLevel = topLevelFolder;
+	std::transform(lowerTopLevel.begin(), lowerTopLevel.end(), lowerTopLevel.begin(), ::towlower);
 
-    for (const auto& pattern : excludedPatterns)
-    {
-        std::wstring lowerPattern = pattern;
-        std::transform(lowerPattern.begin(), lowerPattern.end(), lowerPattern.begin(), ::towlower);
+	for (const auto& pattern : excludedPatterns)
+	{
+		std::wstring lowerPattern = pattern;
+		std::transform(lowerPattern.begin(), lowerPattern.end(), lowerPattern.begin(), ::towlower);
 
-        if (lowerTopLevel == lowerPattern)
-        {
-            return L"";
-        }
-    }
+		if (lowerTopLevel == lowerPattern)
+		{
+			return L"";
+		}
+	}
 
-    fs::path fullTarget = g_logicalBaseDir / relativePart;
-    fs::path parentDir = fullTarget.parent_path();
+	fs::path fullTarget = g_logicalBaseDir / relativePart;
+	fs::path parentDir = fullTarget.parent_path();
 
-    if (!parentDir.empty() && !fs::exists(parentDir))
-    {
-        try
-        {
-            fs::create_directories(parentDir);
-        }
-        catch (...)
-        {
-        }
-    }
+	if (!parentDir.empty() && !fs::exists(parentDir))
+	{
+		try
+		{
+			fs::create_directories(parentDir);
+		}
+		catch (...)
+		{
+		}
+	}
 
-    return relativePart;
+	return relativePart;
 }
 
 void InitializeBaseDir()
@@ -135,8 +135,8 @@ void InitializeBaseDir()
 	wchar_t modulePath[MAX_PATH];
 	GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
 	fs::path exePath = modulePath;
-	
-	if (g_configManager.GetIntConfig("folderPolicy") == 2)
+
+	if (g_configManager.GetStringConfig("folderPolicyString") == "shares")
 	{
 		int versionType = g_configManager.GetInfoInt("versionType");
 		if (versionType == 0 || versionType == 2)
@@ -148,8 +148,8 @@ void InitializeBaseDir()
 			g_logicalBaseDir = exePath.parent_path() / "Minecraft Bedrock";
 		}
 	}
-	
-	if (g_configManager.GetIntConfig("folderPolicy") == 1)
+
+	if (g_configManager.GetStringConfig("folderPolicyString") == "independence")
 	{
 		g_logicalBaseDir = exePath.parent_path() / bbFolder;
 	}
@@ -213,8 +213,8 @@ HANDLE GetLocalDataRoot()
 
 bool ApplyRedirection(POBJECT_ATTRIBUTES objectAttributes, RedirectContext& context, bool& isRedirected, std::string opType)
 {
-	isRedirected = false; 
-	
+	isRedirected = false;
+
 	if (objectAttributes && objectAttributes->ObjectName && isOutFileHook) {
 		std::wstring path(objectAttributes->ObjectName->Buffer, objectAttributes->ObjectName->Length / sizeof(wchar_t));
 		Logger::Info(opType + ": " + WStringToString(path));
@@ -362,7 +362,7 @@ NTSTATUS NTAPI HookedNtQueryAttributesFile(
 	bool isRedirected = false;
 	POBJECT_ATTRIBUTES actualAttributes = ObjectAttributes;
 
-	ApplyRedirection(ObjectAttributes, context, isRedirected,"NtQueryAttributesFile");
+	ApplyRedirection(ObjectAttributes, context, isRedirected, "NtQueryAttributesFile");
 	if (isRedirected)
 	{
 		actualAttributes = &context.objectAttributes;
@@ -380,7 +380,7 @@ NTSTATUS NTAPI HookedNtQueryFullAttributesFile(
 	bool isRedirected = false;
 	POBJECT_ATTRIBUTES actualAttributes = ObjectAttributes;
 
-	ApplyRedirection(ObjectAttributes, context, isRedirected,"NtQueryFullAttributesFile");
+	ApplyRedirection(ObjectAttributes, context, isRedirected, "NtQueryFullAttributesFile");
 	if (isRedirected)
 	{
 		actualAttributes = &context.objectAttributes;
@@ -535,7 +535,7 @@ NTSTATUS NTAPI HookedNtDeleteFile(
 	bool isRedirected = false;
 	POBJECT_ATTRIBUTES actualAttributes = ObjectAttributes;
 
-	ApplyRedirection(ObjectAttributes, context, isRedirected,"NtDeleteFile");
+	ApplyRedirection(ObjectAttributes, context, isRedirected, "NtDeleteFile");
 	if (isRedirected)
 	{
 		actualAttributes = &context.objectAttributes;
@@ -604,7 +604,7 @@ int LoadPreloadDlls(HINSTANCE hinstDLL,
 					}
 					else
 					{
-						Logger::Error("FAILED Error:" + GetLastError()); 
+						Logger::Error("FAILED Error:" + GetLastError());
 					}
 				}
 			}
@@ -684,7 +684,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 {
 	switch (ul_reason_for_call)
 	{
-	case DLL_PROCESS_ATTACH:	
+	case DLL_PROCESS_ATTACH:
 		SetExeDirectoryAsWorkingDir();
 		if (g_configManager.GetBoolConfig("isConsole"))
 		{
