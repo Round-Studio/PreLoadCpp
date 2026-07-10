@@ -1,0 +1,54 @@
+name: Push Check
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Generate version from date
+        id: version
+        shell: pwsh
+        run: |
+          $d = (Get-Date).ToUniversalTime()
+          $v = "$($d.Year % 100).$($d.Month).$($d.Day)"
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate version_config.h
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $sha = "${{ github.sha }}"
+          $parts = $v.Split('.')
+          @"
+          #pragma once
+
+          #define PRELOADCPP_VERSION_MAJOR $($parts[0])
+          #define PRELOADCPP_VERSION_MINOR $($parts[1])
+          #define PRELOADCPP_VERSION_PATCH $($parts[2])
+          #define PRELOADCPP_VERSION_BUILD 0
+          #define PRELOADCPP_VERSION "$v"
+          #define PRELOADCPP_COMMIT_HASH "$sha"
+          "@ | Out-File -FilePath src/version_config.h -Encoding ASCII
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release x64)
+        shell: pwsh
+        run: msbuild src/PreloadCpp.vcxproj /p:Configuration=Release /p:Platform=x64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: preloadcpp-build
+          path: |
+            **/PreloadCpp.dll
+          retention-days: 30
