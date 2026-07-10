@@ -32,7 +32,7 @@ struct LogTask {
 
 class Logger {
 public:
-    static HANDLE hConsole;
+    static inline HANDLE hConsole = INVALID_HANDLE_VALUE;
 
 private:
     static const WORD INFO_COLOR = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
@@ -42,18 +42,16 @@ private:
     static const WORD DEFAULT_COLOR = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
     static const WORD CYAN_COLOR = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
 
-    // 异步相关成员
-    static std::queue<LogTask> logQueue;
-    static std::mutex queueMutex;
-    static std::condition_variable cv;
-    static std::thread workerThread;
-    static std::atomic<bool> shouldStop;
+    static inline std::queue<LogTask> logQueue;
+    static inline std::mutex queueMutex;
+    static inline std::condition_variable cv;
+    static inline std::thread workerThread;
+    static inline std::atomic<bool> shouldStop{ false };
 
-    // 文件写入相关
-    static std::ofstream logFile;
-    static std::mutex fileMutex;
-    static bool fileEnabled;
-    static std::string logFilePath;
+    static inline std::ofstream logFile;
+    static inline std::mutex fileMutex;
+    static inline bool fileEnabled = true;
+    static inline std::string logFilePath;
 
     static std::string GetTimestamp() {
         auto now = std::chrono::system_clock::now();
@@ -122,7 +120,6 @@ private:
         }
     }
 
-    // 后台渲染线程主循环
     static void ProcessLogs() {
         while (true) {
             std::queue<LogTask> localQueue;
@@ -147,31 +144,25 @@ private:
     static void Render(const LogTask& task) {
         if (hConsole == INVALID_HANDLE_VALUE) return;
 
-        // 1. 时间戳 (默认色)
         std::cout << task.timestamp << " ";
 
-        // 2. 级别标签 (根据级别变色)
         SetConsoleTextAttribute(hConsole, GetLevelColor(task.level));
         std::cout << GetLevelString(task.level);
 
-        // 3. 恢复默认并输出内容
         SetConsoleTextAttribute(hConsole, DEFAULT_COLOR);
         std::cout << " [" << task.context << "] " << task.message << "\n";
     }
 
     static std::string CreateLogDirectory() {
-        // 获取 exe 所在目录
         char exePath[MAX_PATH];
         GetModuleFileNameA(NULL, exePath, MAX_PATH);
         fs::path exeDir = fs::path(exePath).parent_path();
 
-        // 创建 logs 目录
         fs::path logDir = exeDir / "config" / "BedrockBoot2" / "logs";
         if (!fs::exists(logDir)) {
             fs::create_directories(logDir);
         }
 
-        // 生成日志文件名（按日期）
         auto now = std::chrono::system_clock::now();
         auto time = std::chrono::system_clock::to_time_t(now);
         struct tm tm_info;
@@ -193,7 +184,7 @@ public:
         std::ios_base::sync_with_stdio(false);
         std::cin.tie(NULL);
 
-        // 初始化文件日志
+        // 锟斤拷始锟斤拷锟侥硷拷锟斤拷志
         CreateLogDirectory();
         logFile.open(logFilePath, std::ios::out | std::ios::app);
         if (!logFile.is_open()) {
@@ -266,14 +257,3 @@ public:
     }
 };
 
-// 静态成员初始化
-HANDLE Logger::hConsole = INVALID_HANDLE_VALUE;
-std::queue<LogTask> Logger::logQueue;
-std::mutex Logger::queueMutex;
-std::condition_variable Logger::cv;
-std::thread Logger::workerThread;
-std::atomic<bool> Logger::shouldStop{ false };
-std::ofstream Logger::logFile;
-std::mutex Logger::fileMutex;
-bool Logger::fileEnabled = true;
-std::string Logger::logFilePath;

@@ -750,7 +750,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 			if (error == NO_ERROR)
 			{
 				g_hooksInstalled = true;
-				Logger::Success("File Redirector Hooked Successfully. Attached: 6");
+				Logger::Success("File Redirector Hooked Successfully. Attached: 8");
 			}
 			else
 			{
