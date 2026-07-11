@@ -733,6 +733,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 			Logger::Info("NtQueryFullAttributesFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryFullAttributesFile)));
 			Logger::Info("NtSetInformationFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtSetInformationFile)));
 			Logger::Info("NtDeleteFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtDeleteFile)));
+			Logger::Info("NtQueryDirectoryFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryDirectoryFile)));
+			Logger::Info("NtCreateSection addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtCreateSection)));
 
 			DetourTransactionBegin();
 			DetourUpdateThread(GetCurrentThread());
