@@ -34,11 +34,11 @@ std::wstring GetRedirectedRelativePath(const std::wstring& originalPath)
 {
 	const std::vector<std::wstring> keywords = {
 		L"AppData\\Roaming\\Minecraft Bedrock",
+		L"AppData\\Roaming\\Minecraft Bedrock Preview",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe",
 		L"AppData\\Local\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState",
-		L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe\\LocalState",
-		L"AppData\\Roaming\\Minecraft Bedrock Preview"
+		L"AppData\\Local\\Packages\\Microsoft.MinecraftWindowsBeta_8wekyb3d8bbwe\\LocalState"
 	};
 
 	const std::vector<std::wstring> excludedPatterns = {
@@ -704,59 +704,71 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 		}
 		if (g_configManager.GetBoolConfig("isVersionIsolated"))
 		{
-			Logger::Info("Initializing File Hook.");
-			HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-			if (!ntdll)
+			int buildType = g_configManager.GetInfoInt("buildType");
+			
+			if (buildType == 1)
 			{
-				Logger::Error("Get ntdll pt error");
-				return FALSE;
+				Logger::Info("Instance build type: UWP");
+				Logger::Warning("The UWP version, for special reasons, currently doesn't support version hooking.");
 			}
-
-			OriginalNtCreateFile = reinterpret_cast<NtCreateFile_t>(
-				GetProcAddress(ntdll, "NtCreateFile"));
-			OriginalNtOpenFile = reinterpret_cast<NtOpenFile_t>(
-				GetProcAddress(ntdll, "NtOpenFile"));
-			OriginalNtQueryAttributesFile = reinterpret_cast<NtQueryAttributesFile_t>(
-				GetProcAddress(ntdll, "NtQueryAttributesFile"));
-			OriginalNtQueryFullAttributesFile = reinterpret_cast<NtQueryFullAttributesFile_t>(
-				GetProcAddress(ntdll, "NtQueryFullAttributesFile"));
-			OriginalNtSetInformationFile = reinterpret_cast<NtSetInformationFile_t>(
-				GetProcAddress(ntdll, "NtSetInformationFile"));
-			OriginalNtDeleteFile = reinterpret_cast<NtDeleteFile_t>(
-				GetProcAddress(ntdll, "NtDeleteFile"));
-			OriginalNtQueryDirectoryFile = reinterpret_cast<NtQueryDirectoryFile_t>(GetProcAddress(ntdll, "NtQueryDirectoryFile"));
-			OriginalNtCreateSection = reinterpret_cast<NtCreateSection_t>(GetProcAddress(ntdll, "NtCreateSection"));
-
-			Logger::Info("NtCreateFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtCreateFile)));
-			Logger::Info("NtOpenFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtOpenFile)));
-			Logger::Info("NtQueryAttributesFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryAttributesFile)));
-			Logger::Info("NtQueryFullAttributesFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryFullAttributesFile)));
-			Logger::Info("NtSetInformationFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtSetInformationFile)));
-			Logger::Info("NtDeleteFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtDeleteFile)));
-			Logger::Info("NtQueryDirectoryFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryDirectoryFile)));
-			Logger::Info("NtCreateSection addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtCreateSection)));
-
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-
-			DetourAttach(&(PVOID&)OriginalNtCreateFile, HookedNtCreateFile);
-			DetourAttach(&(PVOID&)OriginalNtOpenFile, HookedNtOpenFile);
-			DetourAttach(&(PVOID&)OriginalNtQueryAttributesFile, HookedNtQueryAttributesFile);
-			DetourAttach(&(PVOID&)OriginalNtQueryFullAttributesFile, HookedNtQueryFullAttributesFile);
-			DetourAttach(&(PVOID&)OriginalNtSetInformationFile, HookedNtSetInformationFile);
-			DetourAttach(&(PVOID&)OriginalNtDeleteFile, HookedNtDeleteFile);
-			DetourAttach(&(PVOID&)OriginalNtQueryDirectoryFile, HookedNtQueryDirectoryFile);
-			DetourAttach(&(PVOID&)OriginalNtCreateSection, HookedNtCreateSection);
-
-			LONG error = DetourTransactionCommit();
-			if (error == NO_ERROR)
+			
+			if (buildType == 0)
 			{
-				g_hooksInstalled = true;
-				Logger::Success("File Redirector Hooked Successfully. Attached: 8");
-			}
-			else
-			{
-				Logger::Error("DetourTransactionCommit failed with error: " + std::to_string(error));
+				Logger::Info("Instance build type: GDK");
+				Logger::Info("Initializing File Hook.");
+				HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+				if (!ntdll)
+				{
+					Logger::Error("Get ntdll pt error");
+					return FALSE;
+				}
+
+				OriginalNtCreateFile = reinterpret_cast<NtCreateFile_t>(
+					GetProcAddress(ntdll, "NtCreateFile"));
+				OriginalNtOpenFile = reinterpret_cast<NtOpenFile_t>(
+					GetProcAddress(ntdll, "NtOpenFile"));
+				OriginalNtQueryAttributesFile = reinterpret_cast<NtQueryAttributesFile_t>(
+					GetProcAddress(ntdll, "NtQueryAttributesFile"));
+				OriginalNtQueryFullAttributesFile = reinterpret_cast<NtQueryFullAttributesFile_t>(
+					GetProcAddress(ntdll, "NtQueryFullAttributesFile"));
+				OriginalNtSetInformationFile = reinterpret_cast<NtSetInformationFile_t>(
+					GetProcAddress(ntdll, "NtSetInformationFile"));
+				OriginalNtDeleteFile = reinterpret_cast<NtDeleteFile_t>(
+					GetProcAddress(ntdll, "NtDeleteFile"));
+				OriginalNtQueryDirectoryFile = reinterpret_cast<NtQueryDirectoryFile_t>(GetProcAddress(ntdll, "NtQueryDirectoryFile"));
+				OriginalNtCreateSection = reinterpret_cast<NtCreateSection_t>(GetProcAddress(ntdll, "NtCreateSection"));
+
+				Logger::Info("NtCreateFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtCreateFile)));
+				Logger::Info("NtOpenFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtOpenFile)));
+				Logger::Info("NtQueryAttributesFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryAttributesFile)));
+				Logger::Info("NtQueryFullAttributesFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryFullAttributesFile)));
+				Logger::Info("NtSetInformationFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtSetInformationFile)));
+				Logger::Info("NtDeleteFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtDeleteFile)));
+				Logger::Info("NtQueryDirectoryFile addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtQueryDirectoryFile)));
+				Logger::Info("NtCreateSection addr: " + std::to_string(reinterpret_cast<unsigned long long>(OriginalNtCreateSection)));
+
+				DetourTransactionBegin();
+				DetourUpdateThread(GetCurrentThread());
+
+				DetourAttach(&(PVOID&)OriginalNtCreateFile, HookedNtCreateFile);
+				DetourAttach(&(PVOID&)OriginalNtOpenFile, HookedNtOpenFile);
+				DetourAttach(&(PVOID&)OriginalNtQueryAttributesFile, HookedNtQueryAttributesFile);
+				DetourAttach(&(PVOID&)OriginalNtQueryFullAttributesFile, HookedNtQueryFullAttributesFile);
+				DetourAttach(&(PVOID&)OriginalNtSetInformationFile, HookedNtSetInformationFile);
+				DetourAttach(&(PVOID&)OriginalNtDeleteFile, HookedNtDeleteFile);
+				DetourAttach(&(PVOID&)OriginalNtQueryDirectoryFile, HookedNtQueryDirectoryFile);
+				DetourAttach(&(PVOID&)OriginalNtCreateSection, HookedNtCreateSection);
+
+				LONG error = DetourTransactionCommit();
+				if (error == NO_ERROR)
+				{
+					g_hooksInstalled = true;
+					Logger::Success("File Redirector Hooked Successfully. Attached: 8");
+				}
+				else
+				{
+					Logger::Error("DetourTransactionCommit failed with error: " + std::to_string(error));
+				}
 			}
 		}
 		Load();
